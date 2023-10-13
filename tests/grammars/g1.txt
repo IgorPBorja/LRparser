@@ -1,0 +1,5 @@
+P -> E
+E -> E PLUS T
+E -> T
+T -> id OPENP E CLOSEP
+T -> id

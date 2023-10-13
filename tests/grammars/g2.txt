@@ -1,0 +1,4 @@
+P -> E | 
+G -> E | E | E | T PLUS T PLUS T
+U -> P
+P -> G
