@@ -6,7 +6,7 @@ from grammar import Grammar
 filepath = argv[1]
 
 G = parse_file(filepath)
-print(f"Raw grammar: {G.grammar}")
+print(f"Raw grammar: {G.raw_grammar}")
 
 print("Grammar is", G.grammar, f"with start variable \'{G.start}\'", sep='\n')
 

@@ -49,6 +49,6 @@ def parse_file(filepath: str,
     ## remove duplicates
     grammar_unique_keys: dict[str, set[str]] = {}
     for var in grammar:
-        grammar_unique_keys[var] = list(set(grammar[var]))
+        grammar_unique_keys[var] = set(grammar[var])
     
     return Grammar(grammar_unique_keys, start)
