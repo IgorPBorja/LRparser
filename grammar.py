@@ -1,6 +1,8 @@
+import typing as T
+
 class Grammar:
     def __init__(self,
-                 grammar: dict[str, set[str]],
+                 grammar: T.Dict[str, T.Set[str]],
                  start: str,
                  eof_symbol: str = "$"):
         """
@@ -8,15 +10,21 @@ class Grammar:
         Args:
             grammar (dict[str, set[str]]): 
                 the dictionary of grammar productions
+            start (str):
+                start variable
+            eof_symbol (str):
+                symbol for end of input
                 
         NOTE: any symbol not in the left hand of any rule is considered a terminal 
         """
         
-        self.symbols : set[str] = set()
-        self.terminals : set[str] = set()
-        self.vars : set[str] = set()
-        self.raw_grammar : dict[str, set[str]] = grammar
-        self.grammar : dict[str, set[tuple[str]]] = dict()
+        ## TODO decide if epsilon should be symbol
+        
+        self.symbols : T.Set[str] = set()
+        self.terminals : T.Set[str] = set()
+        self.vars : T.Set[str] = set()
+        self.raw_grammar : T.Dict[str, T.Set[str]] = grammar
+        self.grammar : T.Dict[str, T.Set[T.Tuple[str, ...]]] = dict()
         for A in self.raw_grammar:
             if A not in self.grammar:
                 self.grammar[A] = set()
@@ -52,7 +60,7 @@ class Grammar:
                         s += f"{A} {rule_separator} \u03B5\n"
         else:
             for A in self.raw_grammar:
-                right_side : set[str] = self.raw_grammar[A]
+                right_side : T.Set[str] = self.raw_grammar[A]
                 if (use_epsilon_unicode and '' in right_side):
                     right_side.remove('')
                     right_side.add("\u03B5")
@@ -60,7 +68,7 @@ class Grammar:
                     f"{(' ' + or_clause + ' ').join(right_side)}\n"
         return s.strip()
 
-    def first(self) -> dict[str, set[str]]:
+    def first(self) -> T.Dict[str, T.Set[str]]:
         """
         Args:
             self: grammar object
@@ -71,7 +79,7 @@ class Grammar:
                 if (epsilon in First(X1) and ... and epsilon in First(X(i-1)))
                     First(A) <- First(A) U First(Xi)
         """
-        first : dict[str, set[str]] = dict()
+        first : T.Dict[str, T.Set[str]] = dict()
         first[''] = set({''})
         for t in self.terminals:
             first[t] = set({t})
@@ -95,8 +103,8 @@ class Grammar:
         return first
 
     @staticmethod
-    def first_fromword(word: list[str],
-                    first: dict[str, set[str]]) -> set[str]:
+    def first_fromword(word: T.Union[T.List[str], T.Tuple[str, ...]],
+                    first: T.Dict[str, T.Set[str]]) -> T.Set[str]:
         """Generate First(W1W2 ... WN) where W1W2 ... WN is a list of symbols
         (either terminals/tokens or variables) 
 
@@ -109,7 +117,7 @@ class Grammar:
         Complexity (estimated):
             O(|word|^2 + sum first[Wi]) algorithm (naive approach)
         """
-        F : set[str] = set()
+        F : T.Set[str] = set()
         for i in range(len(word)):
             if (all(['' in first[word[j]] for j in range(i)])):
                 F = F.union(first[word[i]])
@@ -118,7 +126,7 @@ class Grammar:
         return F
 
     def follow(self,
-            first: dict[str, set[str]]) -> dict[str, set[str]]:
+            first: T.Dict[str, T.Set[str]]) -> T.Dict[str, T.Set[str]]:
         """
         Args:
             self: grammar object
@@ -137,7 +145,7 @@ class Grammar:
         Returns:
             dict[str, set[str]]: follow set of each nonterminal
         """
-        follow : dict[str, set[str]] = dict()
+        follow : T.Dict[str, T.Set[str]] = dict()
         converged : bool = False
         
         ## pre-create all follow sets
