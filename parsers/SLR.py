@@ -86,6 +86,9 @@ class LR0_State:
                 s += f"{var} {rule_separator} "
                 s += f"{' '.join(word)}\n"
         return s
+    
+    def __repr__(self):
+        return self.__str__()
 
     def __eq__(self, other):
         return self.productions == other.productions
@@ -123,22 +126,27 @@ class LR0_Automaton:
             ## if there was no rules with a specific lookahead symbol, the generated new state will be empty, so we need to consider this new case
 
             if (len(new_state.productions) == 0):
-                return
+                continue
             
             if (not (new_state in self.states)):
                 ## no state with the same exact productions
                 self.states.append(new_state)
-                self.transition_table.append(dict({t: None for t in self.grammar.symbols})) ## empty dictionary list
+                ## empty dictionary line
+                self.transition_table.append(dict({t: None for t in self.grammar.symbols}))
                 self.transition_table[state.id][s] = new_state.id
             else:
-                self.transition_table[state.id][s] = self.states.index(new_state).id
+                idx = self.states.index(new_state)
+                self.transition_table[state.id][s] = self.states[idx].id
 
     def __init__(self,
                  grammar: Grammar,
-                 indicator: str = '.'):
+                 indicator: str = '.',
+                 eof_symbol: str = '$'):
         self.states : T.List[LR0_State] = []
+        self.accepting : T.Set[int] = set()
         self.transition_table : T.List[T.Dict[str, T.Optional[int]]] = []
         self.indicator : str = indicator
+        self.eof_symbol = eof_symbol
         self.grammar = grammar
 
         start_productions : LOOKAHEAD_TABLE = dict()
@@ -151,6 +159,7 @@ class LR0_Automaton:
 
         self.states.append(LR0_State(grammar, start_productions, 0, indicator))
         self.transition_table.append(dict({s: None for s in self.grammar.symbols}))
+        self.start_state = self.states[0]
 
         ## the while loop accounts for the fact that
         ## the states list is changing mid-loop
@@ -158,3 +167,37 @@ class LR0_Automaton:
         while (i < len(self.states)):
             self.build(self.states[i])
             i += 1
+            
+        ## build transitions to accept state
+        for state in self.states:
+            for (_, var), possible_targets in state.productions.items():
+                for word in possible_targets:
+                    if (var == self.grammar.start and word[-1] == self.indicator):
+                        self.accepting.add(state.id)
+            
+    def display_table(self,
+                  horizontal_separator: str = "|",
+                  vertical_separator: str = "-") -> str:
+        width : int = max(len(str(s.id)) for s in self.states)
+        width = max(width, max(len(symb) for symb in self.grammar.symbols))
+        lines : T.List[str] = []
+        
+        ## top line
+        top :str = (width + 1) * " "
+        for symb in self.grammar.symbols:
+            top += horizontal_separator
+            top += symb.center(width + 1, " ")
+        lines.append(top)
+        ## normal lines
+        for state in self.states:
+            lines.append((len(lines[-1]) // len(vertical_separator)) * vertical_separator)
+            curr_line : str = str(state.id).center(width + 1, " ")
+            for symb in self.grammar.symbols:
+                new_state_id : T.Optional[int] = self.transition_table[state.id][symb] 
+                curr_line += horizontal_separator
+                if new_state_id is not None:
+                    curr_line += str(new_state_id).center(width + 1, " ")
+                else:
+                    curr_line += (width + 1) * " "
+            lines.append(curr_line)
+        return '\n'.join(lines)
