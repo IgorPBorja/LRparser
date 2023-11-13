@@ -6,6 +6,10 @@ grammar = parse_file(argv[1])
 
 LR0_aut = LR0_Automaton(grammar)
 
+print(" Original grammar ".center(80, '-'))
+print(grammar.__str__())
+print(80 * '-')
+
 for i, state in enumerate(LR0_aut.states):
     print(f"State {i}:", end=2*'\n')
     print(state)

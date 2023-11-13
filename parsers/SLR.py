@@ -24,22 +24,34 @@ class LR0_State:
         grammar: Grammar,
         var: str,
         current_productions: LOOKAHEAD_TABLE,
+        first_set: T.Dict[str, T.Set[str]],
         indicator: str = '.') -> LOOKAHEAD_TABLE:
         """
-            Given a variable v, add all productions v -> x WORD
-            as v -> .x WORD
+            Given a variable v, 
+            for all productions v -> x0...x[n-1]
+                for (i=0...n-1)
+                    if epsilon in first(x0...x[i-1]) / derives epsilon
+                        add all productions xi -> .x(i + 1)...xn
+                        (considering x0 = v)
+                    
+            This makes it possible to accept grammar with epsilon transitions.
         """
         for word in grammar.grammar[var]:
-            prepended_dot_word = tuple((indicator, *(word)))
-            ref_symbol = word[0]
-            if ((ref_symbol, var) not in current_productions):
-                current_productions[(ref_symbol, var)] = set()   
-            current_productions[(ref_symbol, var)].add(prepended_dot_word)
+            nullable = [('' in first_set[x]) for x in word]
+            for i in range(-1, len(word)):
+                prepended_dot_word = tuple((indicator, *(word[i+1:])))
+                if (i == -1 or all(nullable[:i])):
+                    lookahead = word[i + 1] if i + 1 < len(word) else ''
+                    new_var = word[i] if i >= 0 else var
+                    if ((lookahead, new_var) not in current_productions):
+                        current_productions[(lookahead, new_var)] = set()   
+                    current_productions[(lookahead, new_var)].add(prepended_dot_word)
         return current_productions
 
     @staticmethod
     def __closure_LR0(grammar: Grammar,
                     productions: LOOKAHEAD_TABLE,
+                    first_set: T.Dict[str, T.Set[str]],
                     indicator: str) -> LOOKAHEAD_TABLE:
         converged = False
         while (not converged):
@@ -57,6 +69,7 @@ class LR0_State:
                         grammar,
                         new_var,
                         productions,
+                        first_set,
                         indicator
                     )
             if (productions != old_productions_dict):
@@ -67,14 +80,20 @@ class LR0_State:
                  grammar: Grammar,
                  start_productions: LOOKAHEAD_TABLE,
                  id: int,
+                 first_set: T.Dict[str, T.Set[str]],
+                 follow_set: T.Dict[str, T.Set[str]],
                  indicator: str = '.'):
         self.id = id
+        self.first_set = first_set
+        self.follow_set = follow_set
+
         self.productions = LR0_State.__closure_LR0(
             grammar, 
-            start_productions, 
+            start_productions,
+            first_set, 
             indicator
         )
-    
+
     def __str__(self, 
                 rule_separator: str = '->',
                 or_clause: str = '|'):
@@ -120,7 +139,9 @@ class LR0_Automaton:
             new_state = LR0_State(
                 grammar=self.grammar,
                 start_productions=new_productions,
-                id=len(self.states)
+                id=len(self.states),
+                first_set=self.first,
+                follow_set=self.follow
             )
 
             ## if there was no rules with a specific lookahead symbol, the generated new state will be empty, so we need to consider this new case
@@ -148,16 +169,29 @@ class LR0_Automaton:
         self.indicator : str = indicator
         self.eof_symbol = eof_symbol
         self.grammar = grammar
+        self.first = grammar.first()
+        self.follow = grammar.follow(self.first)
 
+        ## BUILD START LOOKAHED TABLE for start state
         start_productions : LOOKAHEAD_TABLE = dict()
         for s in grammar.symbols:
             start_productions[(s, grammar.start)] = set()
-        for symbol_list in grammar.grammar[grammar.start]:
-            start_productions[(symbol_list[0], grammar.start)].add(
-                tuple((indicator, *symbol_list))
-            )
+        start_productions[('', grammar.start)] = set()
 
-        self.states.append(LR0_State(grammar, start_productions, 0, indicator))
+        for symbol_list in grammar.grammar[grammar.start]:
+            if len(symbol_list) > 0:
+                start_productions[(symbol_list[0], grammar.start)].add(
+                    tuple((indicator, *symbol_list))
+                )
+            else:
+                start_productions['', grammar.start].add(tuple(indicator,))
+
+        self.states.append(LR0_State(grammar, 
+                                     start_productions, 
+                                     0, 
+                                     self.first,
+                                     self.follow,
+                                     indicator))
         self.transition_table.append(dict({s: None for s in self.grammar.symbols}))
         self.start_state = self.states[0]
 
@@ -183,7 +217,7 @@ class LR0_Automaton:
         lines : T.List[str] = []
         
         ## top line
-        top :str = (width + 1) * " "
+        top : str = (width + 1) * " "
         for symb in self.grammar.symbols:
             top += horizontal_separator
             top += symb.center(width + 1, " ")
