@@ -1,4 +1,4 @@
-from parsers.SLR import LR0_Automaton, LR0_State
+from parsers.LR0 import LR0_Automaton, LR0_State
 from utils.preprocessing import parse_file
 from sys import argv
 
