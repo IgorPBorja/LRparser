@@ -21,31 +21,35 @@ class LR0_State:
     
     @staticmethod
     def __closure_step(
+        transition: T.Tuple[str, T.Tuple[str, ...]],
         grammar: Grammar,
-        var: str,
         current_productions: LOOKAHEAD_TABLE,
         first_set: T.Dict[str, T.Set[str]],
         indicator: str = '.') -> LOOKAHEAD_TABLE:
         """
-            Given a variable v, 
-            for all productions v -> x0...x[n-1]
-                for (i=0...n-1)
-                    if epsilon in first(x0...x[i-1]) / derives epsilon
-                        add all productions xi -> .x(i + 1)...xn
-                        (considering x0 = v)
+            This simply calculates the closure of a production of the form v -> x0x1...x[i].x[i+1]...x[n-1]
+
+            for (j=i+1...n-1)
+                if epsilon in first(x[i+1]...x[j]) / derives epsilon
+                    add all productions x[i + 1] -> alpha with a prepended dot (x[i+1] -> .alpha)
                     
             This makes it possible to accept grammar with epsilon transitions.
         """
-        for word in grammar.grammar[var]:
-            nullable = [('' in first_set[x]) for x in word]
-            for i in range(-1, len(word)):
-                prepended_dot_word = tuple((indicator, *(word[i+1:])))
-                if (i == -1 or all(nullable[:i])):
-                    lookahead = word[i + 1] if i + 1 < len(word) else ''
-                    new_var = word[i] if i >= 0 else var
-                    if ((lookahead, new_var) not in current_productions):
-                        current_productions[(lookahead, new_var)] = set()   
-                    current_productions[(lookahead, new_var)].add(prepended_dot_word)
+        var, word = transition
+        lookahead_pos = word.index(indicator) + 1
+        nullable = [('' in first_set[x]) for x in word[lookahead_pos:]]
+        for i in range(lookahead_pos, len(word)):
+            prepended_dot_word = tuple((indicator, *(word[i+1:])))
+            if all(nullable[: i - lookahead_pos]) and word[i] in grammar.vars:
+                for new_target_word in grammar.grammar[word[i]]:
+                    lookahead = '' if len(new_target_word) == 0 else new_target_word[0] 
+                    prepended_dot_word = (indicator, *new_target_word)
+                    if (lookahead, word[i]) not in current_productions: # safe add
+                        current_productions[lookahead, word[i]] = {prepended_dot_word}
+                    else:
+                        current_productions[lookahead, word[i]].add(prepended_dot_word)
+        if all(nullable):
+            current_productions['', var].add((indicator,))
         return current_productions
 
     @staticmethod
@@ -58,16 +62,13 @@ class LR0_State:
             converged = True
             ## so it does not change along with the production lookahead table
             old_productions_dict = copy.deepcopy(productions) ## FIXME?
-            for (_, possible_targets) in old_productions_dict.items():
+            for ((lookahead, var), possible_targets) in old_productions_dict.items():
+                if (lookahead not in grammar.vars):
+                    continue
                 for word in possible_targets:
-                    idx = word.index(indicator)
-                    if (idx == len(word) - 1 or 
-                        (not word[idx + 1] in grammar.vars)):
-                        continue
-                    new_var = word[idx + 1]
                     productions = LR0_State.__closure_step(
+                        (var, word),
                         grammar,
-                        new_var,
                         productions,
                         first_set,
                         indicator
