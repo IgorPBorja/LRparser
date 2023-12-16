@@ -119,6 +119,13 @@ class LR0_State:
 class LR0_Automaton:
     def build(self,
               state: LR0_State):
+        """
+            Given a state t of the LR0,
+            for each symbol s,
+                for each rule that has s as lookahead in state t (v -> a.sb)
+                    create a new state t' with all corresponding rules v -> as.b and their closure, and make t point to t'
+                    if this state t' already exists, delete this copy and make t point to the already existing state instead
+        """
         for s in self.grammar.symbols: ## FIXME does not consider case s = epsilon
             new_productions : LOOKAHEAD_TABLE = dict()
             for v in self.grammar.vars:
