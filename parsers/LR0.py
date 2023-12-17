@@ -114,9 +114,60 @@ class LR0_State:
         return self.productions == other.productions
 
 
+class Abstract_LR0_Automaton:
+    """
+        Abstract LR0 Automaton, not vinculated to any grammar.
+    """
+    def __init__(self,
+                 indicator = '.',
+                 eof_symbol = '$'):
+        self.states : T.List[LR0_State] = []
+        self.accepting : T.Set[int] = set()
+        self.transition_table : T.List[T.Dict[str, T.Optional[int]]] = []
+        self.indicator : str = indicator
+        self.eof_symbol = eof_symbol
+
+    def display_table(self,
+                  horizontal_separator: str = "|",
+                  vertical_separator: str = "-") -> str:
+        """
+            Displays graphical representation of transition table
+        """
+        grammar_symbols = set() ## only the usable grammar symbols
+        for row in self.transition_table:
+            for symb in row:
+                grammar_symbols.add(symb)
+
+        width : int = max(len(str(s.id)) for s in self.states)
+        width = max(width, max(len(symb) for symb in grammar_symbols))
+        lines : T.List[str] = []
+        
+        ## top line
+        top : str = (width + 1) * " "
+        for symb in grammar_symbols:
+            top += horizontal_separator
+            top += symb.center(width + 1, " ")
+        lines.append(top)
+        ## normal lines
+        for state in self.states:
+            lines.append((len(lines[-1]) // len(vertical_separator)) * vertical_separator)
+            curr_line : str = str(state.id).center(width + 1, " ")
+            for symb in grammar_symbols:
+                new_state_id : T.Optional[int] = self.transition_table[state.id][symb] 
+                curr_line += horizontal_separator
+                if new_state_id is not None:
+                    curr_line += str(new_state_id).center(width + 1, " ")
+                else:
+                    curr_line += (width + 1) * " "
+            lines.append(curr_line)
+        return '\n'.join(lines)
+
 ## TODO add support for epsilon transitions
 
-class LR0_Automaton:
+class LR0_Automaton(Abstract_LR0_Automaton):
+    """
+        LR0 Automaton built from an specific (provided) grammar.
+    """
     def build(self,
               state: LR0_State):
         """
@@ -171,11 +222,7 @@ class LR0_Automaton:
                  grammar: Grammar,
                  indicator: str = '.',
                  eof_symbol: str = '$'):
-        self.states : T.List[LR0_State] = []
-        self.accepting : T.Set[int] = set()
-        self.transition_table : T.List[T.Dict[str, T.Optional[int]]] = []
-        self.indicator : str = indicator
-        self.eof_symbol = eof_symbol
+        super().__init__(indicator, eof_symbol)
         self.grammar = grammar
         self.first = grammar.first()
         self.follow = grammar.follow(self.first)
@@ -216,30 +263,3 @@ class LR0_Automaton:
                 for word in possible_targets:
                     if (var == self.grammar.start and word[-1] == self.indicator):
                         self.accepting.add(state.id)
-            
-    def display_table(self,
-                  horizontal_separator: str = "|",
-                  vertical_separator: str = "-") -> str:
-        width : int = max(len(str(s.id)) for s in self.states)
-        width = max(width, max(len(symb) for symb in self.grammar.symbols))
-        lines : T.List[str] = []
-        
-        ## top line
-        top : str = (width + 1) * " "
-        for symb in self.grammar.symbols:
-            top += horizontal_separator
-            top += symb.center(width + 1, " ")
-        lines.append(top)
-        ## normal lines
-        for state in self.states:
-            lines.append((len(lines[-1]) // len(vertical_separator)) * vertical_separator)
-            curr_line : str = str(state.id).center(width + 1, " ")
-            for symb in self.grammar.symbols:
-                new_state_id : T.Optional[int] = self.transition_table[state.id][symb] 
-                curr_line += horizontal_separator
-                if new_state_id is not None:
-                    curr_line += str(new_state_id).center(width + 1, " ")
-                else:
-                    curr_line += (width + 1) * " "
-            lines.append(curr_line)
-        return '\n'.join(lines)
