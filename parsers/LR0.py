@@ -33,7 +33,10 @@ class Abstract_LR0_State:
         return self.__str__()
 
     def __eq__(self, other):
-        return self.productions == other.productions
+        ## compare only non-empty entries
+        ## so if a pair (symb, var) maps to an empty set, it is desconsidered
+        clean_dict = lambda d: {a : b for a, b in d.items() if len(b) != 0}
+        return clean_dict(self.productions) == clean_dict(other.productions)
 
 
 class LR0_State(Abstract_LR0_State):
