@@ -7,7 +7,36 @@ PRODUCTION_TABLE = T.Dict[str, T.Set[T.Tuple[str, ...]]]
 ## P[s, v] = set of all productions v -> a.sb (s is the lookahead)
 LOOKAHEAD_TABLE = T.Dict[T.Tuple[str, str], T.Set[T.Tuple[str, ...]]]
 
-class LR0_State:
+class Abstract_LR0_State:
+    """
+        Abstract LR0 state, not vinculated to any grammar.
+    """
+    def __init__(self,
+                 id: int,
+                 productions: LOOKAHEAD_TABLE):
+        self.id = id
+        self.productions = productions
+
+    def __str__(self, 
+                rule_separator: str = '->',
+                or_clause: str = '|'):
+        s = ""
+        for (symb, var), word_list in self.productions.items():
+            if (word_list == set()):
+                continue
+            for word in word_list:
+                s += f"{var} {rule_separator} "
+                s += f"{' '.join(word)}\n"
+        return s
+    
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        return self.productions == other.productions
+
+
+class LR0_State(Abstract_LR0_State):
     """
         This class represents an state of an LR0 automaton.
 
@@ -95,24 +124,6 @@ class LR0_State:
             indicator
         )
 
-    def __str__(self, 
-                rule_separator: str = '->',
-                or_clause: str = '|'):
-        s = ""
-        for (symb, var), word_list in self.productions.items():
-            if (word_list == set()):
-                continue
-            for word in word_list:
-                s += f"{var} {rule_separator} "
-                s += f"{' '.join(word)}\n"
-        return s
-    
-    def __repr__(self):
-        return self.__str__()
-
-    def __eq__(self, other):
-        return self.productions == other.productions
-
 
 class Abstract_LR0_Automaton:
     """
@@ -121,7 +132,7 @@ class Abstract_LR0_Automaton:
     def __init__(self,
                  indicator = '.',
                  eof_symbol = '$'):
-        self.states : T.List[LR0_State] = []
+        self.states : T.List[Abstract_LR0_State] = []
         self.accepting : T.Set[int] = set()
         self.transition_table : T.List[T.Dict[str, T.Optional[int]]] = []
         self.indicator : str = indicator
@@ -223,6 +234,7 @@ class LR0_Automaton(Abstract_LR0_Automaton):
                  indicator: str = '.',
                  eof_symbol: str = '$'):
         super().__init__(indicator, eof_symbol)
+        self.states : T.List[LR0_State] = []
         self.grammar = grammar
         self.first = grammar.first()
         self.follow = grammar.follow(self.first)
