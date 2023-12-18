@@ -1,0 +1,40 @@
+State 0:
+
+P -> . E
+P -> . G
+P -> .
+G -> . E
+G -> . T PLUS T PLUS T
+
+State 1:
+
+P -> E .
+G -> E .
+
+State 2:
+
+P -> G .
+
+State 3:
+
+G -> T . PLUS T PLUS T
+
+State 4:
+
+G -> T PLUS . T PLUS T
+
+State 5:
+
+G -> T PLUS T . PLUS T
+
+State 6:
+
+G -> T PLUS T PLUS . T
+
+State 7:
+
+
+
+
+
+G -> T PLUS T PLUS T .
