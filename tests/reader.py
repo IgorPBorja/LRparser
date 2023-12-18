@@ -4,11 +4,12 @@ import string
 from grammar import Grammar
 from parsers.LR0 import LOOKAHEAD_TABLE, Abstract_LR0_Automaton, LR0_Automaton, Abstract_LR0_State, LR0_State
 
-def _readline_ignore_blank(stream: io.TextIOWrapper) -> str:
+def _readline_ignore_blank(stream: io.TextIOBase) -> str:
     line = ""
-    ## read peeks at the next k chars without consuming then
+    ## read(k) consumes the next k chars
     ## stream.read(1) returns false if it is an empty byte (end of stream)
     while (line == "" and stream.read(1)):
+        stream.seek(stream.tell() - 1) ## put back
         new_line = stream.readline()
         line = new_line.strip()
     return line
@@ -38,7 +39,8 @@ def read_state(stream: io.TextIOBase, state_id : int, indicator : str = '.') -> 
 
 def read_LR0(stream: io.TextIOBase, indicator : str = '.', eof_symbol : str = '$') -> Abstract_LR0_Automaton:
     aut = Abstract_LR0_Automaton(indicator, eof_symbol)
-    while (stream.readable()):
+    while (stream.read(1)):
+        stream.seek(stream.tell() - 1) ## put back
         ## peek at the next line 
         state_line = _readline_ignore_blank(stream)
         if state_line == '':
