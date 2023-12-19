@@ -1,22 +1,18 @@
-from parsers.LR0 import LR0_Automaton, LR0_State
 from utils.preprocessing import parse_file
+from parsers.LR0 import LR0_Automaton
+from tests.reader import read_LR0
+from tests.SLR.verifier import compare_LR0
 from sys import argv
+import os
+import pytest
 
-grammar = parse_file(argv[1])
-
-LR0_aut = LR0_Automaton(grammar)
-
-print(grammar.__str__())
-print(80 * '-')
-
-for i, state in enumerate(LR0_aut.states):
-    print(f"State {i}:", end=2*'\n')
-    print(state)
-
-## separate these two!
-print(80 * '-')
-
-print(LR0_aut.display_table())
-# print(*LR0_aut.transition_table, sep='\n')
-print(f"With accepting states {LR0_aut.accepting}")
-    
+@pytest.mark.parametrize(["filepath"], [(filepath,) for filepath in os.listdir("tests/data/grammars")])
+def test_LR0(filepath):
+    assert filepath in os.listdir("tests/data/answers/automaton"), f"File {filepath} does not have answer registered"
+    grammar_file = os.path.join("tests/data/grammars", filepath)
+    oracle_file = os.path.join("tests/data/answers/automaton", filepath)
+    grammar = parse_file(grammar_file)
+    with open(oracle_file, 'r') as oracle_file:
+        answer_aut = LR0_Automaton(grammar)
+        oracle_aut = read_LR0(oracle_file)
+        assert compare_LR0(answer_aut, oracle_aut)

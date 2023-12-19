@@ -1,0 +1,24 @@
+name: SLR parser - Github actions
+on: [push]
+
+jobs:
+  test-LR0:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8  # Replace with your Python version if needed
+
+      - name: Install dependencies on testing environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run pytest on grammar files
+        run: |
+          pip install pytest
+          python -m pytest tests/SLR
