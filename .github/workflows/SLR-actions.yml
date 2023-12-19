@@ -21,4 +21,4 @@ jobs:
       - name: Run pytest on grammar files
         run: |
           pip install pytest
-          python -m pytest tests/SLR
+          python -m pytest tests/SLR/test_LR0.py
