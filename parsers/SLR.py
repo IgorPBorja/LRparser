@@ -17,28 +17,30 @@ class SLR_Parser:
         """
         if action_table[entry] is None:
             return False
-
-        if isinstance(action_table[entry], int):
+        elif isinstance(action_table[entry], int):
             if isinstance(new_value, int) and action_table[entry] == new_value:
                 return False
             elif isinstance(new_value, int) and action_table[entry] != new_value:
                 raise RuntimeError(f"Shift-shift conflict on state {entry[0]} for lookahead token '{entry[1]}': can't decide between states {action_table[entry]} (current) and {new_value} (new). This should not happen when using this function with a correctly built automaton, you might want to post a github issue on https://github.com/IgorPBorja/LRparser.")
             elif isinstance(new_value, tuple):
                 var, word = new_value
-                warnings.warn(f"Shift-reduce conflict: defaulting to reduce action {var} -> {' '.join(word)} (new).", UserWarning)
+                warning_text = f"Shift-reduce conflict on lookahead {entry[1]}: defaulting to reduce action {var} -> {' '.join(word)} (new)."
+                warnings.warn(warning_text, UserWarning)
                 return True
             else:
                 raise RuntimeError(f"Unexpected type for new value: {type(new_value)}") ## FIXME remove
         elif isinstance(action_table[entry], tuple):
             if isinstance(new_value, int):
                 var, word = action_table[entry]
-                warnings.warn(f"Shift-reduce conflict: defaulting to reduce action {var} -> {' '.join(word)} (current).", UserWarning)
+                warning_text = f"Shift-reduce conflict on lookahead {entry[1]}: defaulting to reduce action {var} -> {' '.join(word)} (current)."
+                warnings.warn(warning_text, UserWarning)
                 return True
             elif isinstance(new_value, tuple):
                 var1, word1 = action_table[entry]
                 var2, word2 = new_value
                 if (var1 != var2 or word1 != word2):
-                    raise ValueError(f"Reduce-reduce conflict: options of actions {var1} -> {' '.join(word1)} (current) or {var2} -> {' '.join(word2)} (new)")
+                    error_text = f"Reduce-reduce conflict: options of actions {var1} -> {' '.join(word1)} (current) or {var2} -> {' '.join(word2)} (new)"
+                    raise ValueError(error_text)
             else:
                 raise RuntimeError(f"Unexpected type for new value: {type(new_value)}") ## FIXME remove
         else:
@@ -48,7 +50,7 @@ class SLR_Parser:
                                  entry: T.Tuple[int, str],
                                  new_value: int,
                                  goto_table: GOTO_TABLE):
-        if (entry in goto_table) and (goto_table[entry] is not None) and (goto_table[entry] != new_value):
+        if (goto_table[entry] is not None) and (goto_table[entry] != new_value):
             raise RuntimeError(f"Shift-shift conflict on state {entry[0]} for lookahead token '{entry[1]}': can't decide between states {goto_table[entry]} (current) and {new_value} (new). This should not happen when using this function with a correctly built automaton, you might want to post a github issue on https://github.com/IgorPBorja/LRparser.")
                            
     def build_table(self) -> T.Tuple[ACTION_TABLE, GOTO_TABLE]:
@@ -70,11 +72,13 @@ class SLR_Parser:
         """
         action_table : ACTION_TABLE = {}
         goto_table : GOTO_TABLE = {}
+        # prefill tables
         for state in self.automaton.states:
             for var in self.grammar.vars:
                 goto_table[state.id, var] = None
             for terminal in self.grammar.terminals:
                 action_table[state.id, terminal] = None
+            action_table[state.id, self.eof_symbol] = None
 
         for state in self.automaton.states:
             id = state.id
@@ -96,15 +100,17 @@ class SLR_Parser:
                             raise RuntimeError(f"Unexpected error, in state {id} with lookahead {lookahead} transition table shows nothing, even though a rule exists.")
                         self._identify_goto_conflicts((id, lookahead), next_state_id, goto_table)
                         goto_table[id, lookahead] = next_state_id
-                    if lookahead == '': # reduce
-                        for word in state.productions[lookahead, var]:
 
-                            ## iterate over reductions in the same state
-                            next_state_id = self.automaton.transition_table[id][lookahead]
-                            if next_state_id is not None:
-                                raise RuntimeError(f"Unexpected error: reduce action for var {var} indicating transition to new state {next_state_id}") ## FIXME possibly remove
-                            self._identify_action_conflicts((id, lookahead), (var, word), action_table) ## FIXME what about the indicator (dot)
-                            action_table[(id, lookahead)] = (var, word)
+            ## lookahead == '' (which is not a grammar symbol)
+            for var in self.grammar.vars:
+                if ('', var) not in state.productions:
+                    continue
+                for word in state.productions['', var]:
+                    for lookahead in self.follow[var]:
+
+                        ## iterate over reductions in the same state
+                        self._identify_action_conflicts((id, lookahead), (var, word), action_table) ## FIXME what about the indicator (dot)
+                        action_table[(id, lookahead)] = (var, word)
 
         return action_table, goto_table
 
@@ -127,7 +133,7 @@ class SLR_Parser:
         """
             Calculates the minimum width to fit all entries (as str representations) of the action and goto tables, respectively
         """
-        action_table_maxW, goto_table_maxW = 0, 0
+        action_table_maxW, goto_table_maxW = 4, 4  ## so that at least "None" can fit
         for state in self.automaton.states:
             action_table_maxW = max(action_table_maxW, len(str(state.id)))
             goto_table_maxW = max(action_table_maxW, len(str(state.id)))
@@ -156,6 +162,7 @@ class SLR_Parser:
             goto_table_str += var.center(goto_table_maxW) + "|"
         for tok in self.grammar.terminals:
             action_table_str += tok.center(action_table_maxW) + "|"
+        action_table_str += self.eof_symbol.center(action_table_maxW) + "|"
         action_table_str += "\n"
         goto_table_str += "\n"
 
@@ -165,7 +172,20 @@ class SLR_Parser:
             for var in self.grammar.vars:
                 goto_table_str += str(self.goto_table[i, var]).center(goto_table_maxW) + "|"
             for tok in self.grammar.terminals:
-                action_table_str += str(self.action_table[i, tok]).center(action_table_maxW) + "|"
+                if (self.action_table[i, tok] is None):
+                    action_table_str += action_table_maxW * " " + "|"
+                elif not isinstance(self.action_table[i, tok], tuple):
+                    action_table_str += str(self.action_table[i, tok]).center(action_table_maxW) + "|"
+                else:
+                    var, word = self.action_table[i, tok]
+                    action_table_str += f"{var} -> {' '.join(word)}".center(action_table_maxW) + "|"
+            if self.action_table[i, self.eof_symbol] is None:
+                action_table_str += action_table_maxW * " " + "|"
+            elif isinstance(self.action_table[i, self.eof_symbol], tuple):
+                var, word = self.action_table[i, self.eof_symbol]
+                action_table_str += f"{var} -> {' '.join(word)}".center(action_table_maxW) + "|"
+            else:
+                raise RuntimeError("Unexpected error: parse table (with lookahead = EOF) has non-empty entry that is not a reduce action")
             action_table_str += "\n"
             goto_table_str += "\n"
         return action_table_str, goto_table_str
