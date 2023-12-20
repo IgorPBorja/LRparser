@@ -3,6 +3,7 @@ import io
 import string
 from grammar import Grammar
 from parsers.LR0 import LOOKAHEAD_TABLE, Abstract_LR0_Automaton, LR0_Automaton, Abstract_LR0_State, LR0_State
+from parsers.SLR import ACTION_TABLE, GOTO_TABLE
 
 def _readline_ignore_blank(stream: io.TextIOBase) -> str:
     line = ""
@@ -75,3 +76,29 @@ def read_grammar(stream: io.TextIOBase, eof_symbol : str = '$') -> Grammar:
         else:
             raw_g[var].add(word)
     return Grammar(raw_g, start_var)
+
+def read_SLR_table(stream: io.TextIOBase, separator : str = '|') -> ACTION_TABLE:
+    """
+        Parsers string representation of action table. Works for GOTO table too, though in a GOTO table there will never be a transition as an entry.
+    """
+    action_table : ACTION_TABLE = dict()
+    tokens = stream.readline().strip().split(separator)[1:]
+    tokens = [tok.strip() for tok in tokens] # remove surrounding whitespace
+    while (True):
+        line = stream.readline().strip()
+        if line == "":
+            break
+        state = int(line.split(separator)[0])
+        targets = [t.strip() for t in line.split(separator)[1:]]
+        for i, action in enumerate(targets):
+            if action.isnumeric():
+                action_table[state, tokens[i]] = int(action)
+            elif action == "None":
+                action_table[state, tokens[i]] = None
+            else: ## transition A -> a1 ... an
+                var, word = action.split()[0], tuple(action.split()[2:])
+                action_table[state, tokens[i]] = (var, word)
+    return action_table
+        
+
+
