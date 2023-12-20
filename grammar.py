@@ -43,6 +43,7 @@ class Grammar:
         self.terminals = self.symbols.difference(self.vars)
         if '' in self.terminals:
             self.terminals.remove('')
+            self.symbols.remove('')
         
     def __str__(self,
             rule_separator: str = "->",

@@ -191,7 +191,7 @@ class LR0_Automaton(Abstract_LR0_Automaton):
                     create a new state t' with all corresponding rules v -> as.b and their closure, and make t point to t'
                     if this state t' already exists, delete this copy and make t point to the already existing state instead
         """
-        for s in self.grammar.symbols: ## FIXME does not consider case s = epsilon
+        for s in self.grammar.symbols: 
             new_productions : LOOKAHEAD_TABLE = dict()
             for v in self.grammar.vars:
                 if ((s, v) not in state.productions):
