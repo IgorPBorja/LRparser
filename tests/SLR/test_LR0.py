@@ -1,15 +1,15 @@
 from utils.preprocessing import parse_file
 from parsers.LR0 import LR0_Automaton
-from tests.reader import read_LR0
+from tests.SLR.reader import read_LR0
 from tests.SLR.verifier import compare_LR0
-from sys import argv
 import os
 import pytest
 
-@pytest.mark.parametrize(["filepath"], [(filepath,) for filepath in os.listdir("tests/data/grammars")])
+
+@pytest.mark.parametrize(["filepath"], [(filepath,) for filepath in os.listdir("tests/data/grammars/automaton")])
 def test_LR0(filepath):
     assert filepath in os.listdir("tests/data/answers/automaton"), f"File {filepath} does not have answer registered"
-    grammar_file = os.path.join("tests/data/grammars", filepath)
+    grammar_file = os.path.join("tests/data/grammars/automaton", filepath)
     oracle_file = os.path.join("tests/data/answers/automaton", filepath)
     grammar = parse_file(grammar_file)
     with open(oracle_file, 'r') as oracle_file:

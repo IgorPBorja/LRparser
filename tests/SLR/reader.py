@@ -2,31 +2,33 @@ import typing as T
 import io
 import string
 from grammar import Grammar
-from parsers.LR0 import LOOKAHEAD_TABLE, Abstract_LR0_Automaton, LR0_Automaton, Abstract_LR0_State, LR0_State
+from parsers.LR0 import LOOKAHEAD_TABLE, Abstract_LR0_Automaton, Abstract_LR0_State
 from parsers.SLR import ACTION_TABLE, GOTO_TABLE
+
 
 def _readline_ignore_blank(stream: io.TextIOBase) -> str:
     line = ""
-    ## read(k) consumes the next k chars
-    ## stream.read(1) returns false if it is an empty byte (end of stream)
+    # read(k) consumes the next k chars
+    # stream.read(1) returns false if it is an empty byte (end of stream)
     while (line == "" and stream.read(1)):
-        stream.seek(stream.tell() - 1) ## put back
+        stream.seek(stream.tell() - 1)  # put back
         new_line = stream.readline()
         line = new_line.strip()
     return line
 
-def read_state(stream: io.TextIOBase, state_id : int, indicator : str = '.') -> Abstract_LR0_State:
+
+def read_state(stream: io.TextIOBase, state_id: int, indicator: str = '.') -> Abstract_LR0_State:
     """
-        Formatting rules: 
+        Formatting rules:
         - there has to be at least one blank line between states
         - there must be at least one transition per state
         - there can't be blank lines between transitions
     """
-    lookahead_table : LOOKAHEAD_TABLE = dict()
+    lookahead_table: LOOKAHEAD_TABLE = dict()
 
     line = _readline_ignore_blank(stream).strip()
 
-    while (line != ''): 
+    while (line != ''):
         var, word = line.split()[0], tuple(line.split()[2:])
         lookahead = '' if word.index(indicator) == len(word) - 1 else word[word.index(indicator) + 1]
         if not ((lookahead, var) in lookahead_table):
@@ -38,11 +40,12 @@ def read_state(stream: io.TextIOBase, state_id : int, indicator : str = '.') -> 
     state = Abstract_LR0_State(state_id, lookahead_table)
     return state
 
-def read_LR0(stream: io.TextIOBase, indicator : str = '.', eof_symbol : str = '$') -> Abstract_LR0_Automaton:
+
+def read_LR0(stream: io.TextIOBase, indicator: str = '.', eof_symbol: str = '$') -> Abstract_LR0_Automaton:
     aut = Abstract_LR0_Automaton(indicator, eof_symbol)
     while (stream.read(1)):
-        stream.seek(stream.tell() - 1) ## put back
-        ## peek at the next line 
+        stream.seek(stream.tell() - 1)  # put back
+        # peek at the next line
         state_line = _readline_ignore_blank(stream)
         if state_line == '':
             break
@@ -57,12 +60,13 @@ def read_LR0(stream: io.TextIOBase, indicator : str = '.', eof_symbol : str = '$
 
     return aut
 
-def read_grammar(stream: io.TextIOBase, eof_symbol : str = '$') -> Grammar:
-    raw_g : T.Dict[str, T.Set] = {}
-    start_var : str = ''
-    rule_separator : str = ''
+
+def read_grammar(stream: io.TextIOBase, eof_symbol: str = '$') -> Grammar:
+    raw_g: T.Dict[str, T.Set] = {}
+    start_var: str = ''
+    rule_separator: str = ''
     while (True):
-        ## read next line
+        # read next line
         line = _readline_ignore_blank(stream).strip()
         if (line.startswith('-')):
             break
@@ -77,13 +81,14 @@ def read_grammar(stream: io.TextIOBase, eof_symbol : str = '$') -> Grammar:
             raw_g[var].add(word)
     return Grammar(raw_g, start_var)
 
-def read_SLR_table(stream: io.TextIOBase, separator : str = '|') -> ACTION_TABLE:
+
+def read_SLR_table(stream: io.TextIOBase, separator: str = '|') -> ACTION_TABLE:
     """
         Parsers string representation of action table. Works for GOTO table too, though in a GOTO table there will never be a transition as an entry.
     """
-    action_table : ACTION_TABLE = dict()
+    action_table: ACTION_TABLE = dict()
     tokens = stream.readline().strip().split(separator)[1:]
-    tokens = [tok.strip() for tok in tokens] # remove surrounding whitespace
+    tokens = [tok.strip() for tok in tokens]  # remove surrounding whitespace
     while (True):
         line = stream.readline().strip()
         if line == "":
@@ -95,10 +100,7 @@ def read_SLR_table(stream: io.TextIOBase, separator : str = '|') -> ACTION_TABLE
                 action_table[state, tokens[i]] = int(action)
             elif action == "None":
                 action_table[state, tokens[i]] = None
-            else: ## transition A -> a1 ... an
+            else:  # transition A -> a1 ... an
                 var, word = action.split()[0], tuple(action.split()[2:])
                 action_table[state, tokens[i]] = (var, word)
     return action_table
-        
-
-
