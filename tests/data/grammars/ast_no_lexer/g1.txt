@@ -1,0 +1,15 @@
+program -> var-decl program | function-decl program | var-decl | function-decl
+var-decl -> param | param = expr
+
+expr -> ( expr ) | factor + expr | factor
+factor -> term * factor | term
+term -> ID | NUMBER | call
+call -> ID ( arg-list ) | ID ( )
+arg-list -> expr , arg-list | expr
+
+type -> INTEGER | BOOLEAN
+type-or-void -> type | VOID
+param-list -> param , param-list | param
+param -> ID : type
+function-decl -> type-or-void ID ( param-list ) = { program }
+function-decl -> type-or-void ID ( ) = { program } 

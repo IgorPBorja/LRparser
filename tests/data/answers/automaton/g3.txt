@@ -1,0 +1,168 @@
+State 0:
+
+P -> . S
+P -> . S P
+S -> . if E then S
+S -> . if E then S else S
+S -> . begin P end
+S -> . while E S
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 1:
+
+P -> S .
+P -> S . P
+P -> . S
+P -> . S P
+S -> . if E then S
+S -> . if E then S else S
+S -> . begin P end
+S -> . while E S
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 2:
+
+S -> if . E then S
+S -> if . E then S else S
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 3:
+
+S -> while . E S
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 4:
+
+S -> begin . P end
+P -> . S
+P -> . S P
+S -> . if E then S
+S -> . if E then S else S
+S -> . begin P end
+S -> . while E S
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 5:
+
+S -> print . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 6:
+
+S -> E .
+E -> E . + E
+
+State 7:
+
+E -> id .
+
+State 8:
+
+E -> integer .
+
+State 9:
+
+P -> S P .
+
+State 10:
+
+S -> if E . then S
+S -> if E . then S else S
+E -> E . + E
+
+State 11:
+
+S -> while E . S
+E -> E . + E
+S -> . if E then S
+S -> . if E then S else S
+S -> . begin P end
+S -> . while E S
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 12:
+
+S -> begin P . end
+
+State 13:
+
+S -> print E .
+E -> E . + E
+
+State 14:
+
+E -> E + . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 15:
+
+S -> if E then . S
+S -> if E then . S else S
+S -> . if E then S
+S -> . if E then S else S
+S -> . while E S
+S -> . begin P end
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 16:
+
+S -> while E S .
+
+State 17:
+
+S -> begin P end .
+
+State 18:
+
+S -> if E then S .
+S -> if E then S . else S
+
+State 19:
+
+S -> if E then S else . S
+S -> . if E then S
+S -> . if E then S else S
+S -> . while E S
+S -> . begin P end
+S -> . print E
+S -> . E
+E -> . id
+E -> . integer
+E -> . E + E
+
+State 20:
+
+S -> if E then S else S .
+
+State 21:
+
+E -> E + E .
+E -> E . + E

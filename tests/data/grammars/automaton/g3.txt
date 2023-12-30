@@ -1,0 +1,11 @@
+P -> S
+P -> S P
+S -> if E then S
+S -> if E then S else S
+S -> while E S
+S -> begin P end
+S -> print E
+S -> E
+E -> id
+E -> integer
+E -> E + E

@@ -1,0 +1,9 @@
+VOID ID ( ID : INTEGER , ID : BOOLEAN ) = {
+	ID : INTEGER = NUMBER
+	ID : BOOLEAN
+	INTEGER ID ( ) = {
+		BOOLEAN ID ( ID : INTEGER , ID : BOOLEAN ) = {
+			ID : BOOLEAN = ID ( ID + ID )
+		}
+	}
+}

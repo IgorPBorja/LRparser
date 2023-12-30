@@ -1,0 +1,48 @@
+State 0:
+
+P -> . E
+E -> . E PLUS T
+E -> . T
+T -> . id OPENP E CLOSEP 
+T -> . id
+
+State 1:
+
+P -> E .
+E -> E . PLUS T
+
+State 2:
+
+E -> T .
+
+State 3:
+
+T -> id . OPENP E CLOSEP
+T -> id .
+
+State 4:
+
+E -> E PLUS . T
+T -> . id
+T -> . id OPENP E CLOSEP
+
+State 5:
+
+T -> id OPENP . E CLOSEP
+E -> . E PLUS T
+E -> . T
+T -> . id
+T -> . id OPENP E CLOSEP
+
+State 6:
+
+E -> E PLUS T .
+
+State 7:
+
+E -> E . PLUS T
+T -> id OPENP E . CLOSEP
+
+State 8:
+
+T -> id OPENP E CLOSEP .
