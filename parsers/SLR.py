@@ -124,7 +124,6 @@ class SLR_Parser:
         self.grammar = grammar
         self.eof_symbol = eof_symbol
         self.automaton: LR0_Automaton = LR0_Automaton(grammar, indicator, eof_symbol)
-        print("Transition table is", self.automaton.transition_table, sep="\n")  # FIXME remove
         self.first = self.grammar.first()
         self.follow = self.grammar.follow(self.first)
 
