@@ -2,6 +2,7 @@ import warnings
 import typing as T
 from parsers.LR0 import LR0_Automaton
 from grammar import Grammar
+from utils.AST import AST
 
 TRANSITION = T.Tuple[str, T.Tuple[str, ...]]
 ACTION_TABLE = T.Dict[T.Tuple[int, str], T.Union[T.Optional[int], TRANSITION]]
@@ -189,3 +190,41 @@ class SLR_Parser:
             action_table_str += "\n"
             goto_table_str += "\n"
         return action_table_str, goto_table_str
+
+    def parse(self, stream: T.List[str]) -> T.Tuple[int, AST]:
+        """
+            Run SLR parsing algorithm over list of tokens.
+            Return a tuple (status code, AST).
+            Status code: 0 for sucessful parsing, -1 for Error
+        """
+        tok_list = stream.copy()
+        tok_list.append(self.eof_symbol)
+        ast_bottom_nodes = []
+        state_stack = [0]
+        ptr = 0
+        tok = stream[0]
+        while (True):
+            s = state_stack[-1]
+            if isinstance(self.action_table[s, tok], int): ## shift
+                state_stack.append(self.action_table[s, tok])
+                tok = tok_list[ptr + 1]
+                ptr += 1
+                ast_bottom_nodes.append(AST(tok, []))
+            elif isinstance(self.action_table[s, tok], tuple): ## reduce
+                var, word = self.action_table[s, tok]
+                if (var == self.grammar.start and tok == self.eof_symbol):
+                    return 0, AST(self.grammar.start, ast_bottom_nodes) ## accepting state, parse sucessful
+                ## pop states corresponding to rule A -> alpha
+                reduce_size = len(word) - 1 ## HACK: exclude indicator (dot)
+                reduce_components = ast_bottom_nodes[-reduce_size:]
+                for i in range(reduce_size):
+                    state_stack.pop()
+                    ast_bottom_nodes.pop()
+                t = state_stack[-1]
+                if self.goto_table[t, var] is None:
+                    return -1, AST(-1, ast_bottom_nodes) ## parse unsucessful
+                else:
+                    state_stack.append(self.goto_table[t, var])
+                    ast_bottom_nodes.append(AST(var, reduce_components))
+            else:
+                return -1, AST(-1, ast_bottom_nodes) ## parse unsucessful
