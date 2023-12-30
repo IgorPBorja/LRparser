@@ -1,54 +1,29 @@
-import re
 import typing as T
 from grammar import Grammar
 
-word_pattern : str = r"^[a-zA-Z_][a-zA-Z_0-9]*$"
 
-def check_pattern(rule_words: T.List[str],
-                  rule_separator: str = '->',
-                  or_clause: str = '|') -> bool:
-    if (len(rule_words) < 3):
-        return False
-    
-    match : bool = ( (re.match(word_pattern, rule_words[0])) is not None )
-    match = match and (rule_words[1] == rule_separator)
-    for i in range(2, len(rule_words)):
-        match = match and ( (re.match(word_pattern, rule_words[i]) 
-                           or rule_words[i] == or_clause) is not None )
-    return match
-
-def parse_file(filepath: str, 
-               rule_separator : str = "->",
+def parse_file(filepath: str,
+               rule_separator: str = "->",
                or_clause: str = '|') -> Grammar:
-    grammar : T.Dict[str, T.List[str]] = dict()
-    start : str = ""
+    grammar: T.Dict[str, T.Set[str]] = dict()
+    start: str = ""
 
     with open(filepath, 'r') as f:
         for line in f.readlines():
-            words = line.split() ## split on white space
-            words = [w for w in words if w != '']
-            
-            if (words != [] and (not check_pattern(words, rule_separator, or_clause))):
-                raise ValueError(
-                    f"In line '{line.strip()}' \n\
+            if (len(line.strip()) != 0 and len(line.lstrip().split(rule_separator)) != 2):
+                raise ValueError(f"In line '{line.lstrip()}' \n\
                         Wrong format: each line must be either empty or \
-                        of the format 'word -> word1 | word2 | ... | wordn")
-            
-            ## now we are sure the format is right
-            ## unite on or_clause
-            right_side : T.List[str] = ' '.join(words[2:]).split(or_clause)
-            right_side = [r.strip() for r in right_side] ## remove whitespace
-        
-            if (words != [] and start == ""):
-                start = words[0]
-            if (words != [] and not (words[0] in grammar)):
-                grammar[words[0]] = [] ## create new key
-            for i in range(len(right_side)):
-                grammar[words[0]].append(right_side[i])
-    
-    ## remove duplicates
-    grammar_unique_keys: T.Dict[str, T.Set[str]] = {}
-    for var in grammar:
-        grammar_unique_keys[var] = set(grammar[var])
-    
-    return Grammar(grammar_unique_keys, start)
+                        of the format 'word -> word1 | word2 | ... | wordn', where no word has either -> or '|'")
+            var, raw_production = line.strip().split(rule_separator)  # split on white space
+            var = var.strip()  # remove internal whitespace
+            if start == "":
+                start = var
+            words = raw_production.split(or_clause)
+            words = [w.strip() for w in words]  # remove internal whitespace
+            # now we are sure the format is right
+            # unite on or_clause
+            if (var not in grammar):
+                grammar[var] = set()
+            grammar[var] = grammar[var].union(set(words))
+
+    return Grammar(grammar, start)
