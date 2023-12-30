@@ -206,10 +206,10 @@ class SLR_Parser:
         while (True):
             s = state_stack[-1]
             if isinstance(self.action_table[s, tok], int):  # shift
+                ast_bottom_nodes.append(AST(tok, []))
                 state_stack.append(self.action_table[s, tok])
                 tok = tok_list[ptr + 1]
                 ptr += 1
-                ast_bottom_nodes.append(AST(tok, []))
             elif isinstance(self.action_table[s, tok], tuple):  # reduce
                 var, word = self.action_table[s, tok]
                 if (var == self.grammar.start and tok == self.eof_symbol):
