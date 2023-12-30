@@ -1,7 +1,5 @@
-import io
-from tests.reader import read_LR0
-from parsers.LR0 import Abstract_LR0_Automaton, LR0_Automaton, LR0_State
-from parsers.SLR import SLR_Parser
+from parsers.LR0 import Abstract_LR0_Automaton
+
 
 def infer_state_order(answer: Abstract_LR0_Automaton, oracle: Abstract_LR0_Automaton):
     """
@@ -18,7 +16,8 @@ def infer_state_order(answer: Abstract_LR0_Automaton, oracle: Abstract_LR0_Autom
                 break
     return answer_to_oracle
 
-def compare_LR0(answer : Abstract_LR0_Automaton, oracle : Abstract_LR0_Automaton) -> bool:
+
+def compare_LR0(answer: Abstract_LR0_Automaton, oracle: Abstract_LR0_Automaton) -> bool:
     if (len(answer.states) != len(oracle.states)):
         return False
     answer_to_oracle = infer_state_order(answer, oracle)
@@ -26,6 +25,3 @@ def compare_LR0(answer : Abstract_LR0_Automaton, oracle : Abstract_LR0_Automaton
         if i == -1:
             return False
     return True
-
-class VerifierSLR:
-    pass

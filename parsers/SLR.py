@@ -8,13 +8,14 @@ TRANSITION = T.Tuple[str, T.Tuple[str, ...]]
 ACTION_TABLE = T.Dict[T.Tuple[int, str], T.Union[T.Optional[int], TRANSITION]]
 GOTO_TABLE = T.Dict[T.Tuple[int, str], T.Optional[int]]
 
+
 class SLR_Parser:
     def _identify_action_conflicts(self,
                                    entry: T.Tuple[int, str],
                                    new_value: T.Union[int, TRANSITION],
                                    action_table: ACTION_TABLE) -> bool:
         """
-            Identify possible conflicts when processing new rule in state. Raise error in case of reduce-reduce conflict. Give a warning in case of shift-reduce error. Returns true only if there was a shift-reduce conflict. 
+            Identify possible conflicts when processing new rule in state. Raise error in case of reduce-reduce conflict. Give a warning in case of shift-reduce error. Returns true only if there was a shift-reduce conflict.
         """
         if action_table[entry] is None:
             return False
@@ -29,7 +30,7 @@ class SLR_Parser:
                 warnings.warn(warning_text, UserWarning)
                 return True
             else:
-                raise RuntimeError(f"Unexpected type for new value: {type(new_value)}") ## FIXME remove
+                raise RuntimeError(f"Unexpected type for new value: {type(new_value)}")  # FIXME remove
         elif isinstance(action_table[entry], tuple):
             if isinstance(new_value, int):
                 var, word = action_table[entry]
@@ -43,9 +44,9 @@ class SLR_Parser:
                     error_text = f"Reduce-reduce conflict: options of actions {var1} -> {' '.join(word1)} (current) or {var2} -> {' '.join(word2)} (new)"
                     raise ValueError(error_text)
             else:
-                raise RuntimeError(f"Unexpected type for new value: {type(new_value)}") ## FIXME remove
+                raise RuntimeError(f"Unexpected type for new value: {type(new_value)}")  # FIXME remove
         else:
-            raise RuntimeError(f"Unexpected type for current entry: {type(action_table[entry])}") ## FIXME remove
+            raise RuntimeError(f"Unexpected type for current entry: {type(action_table[entry])}")  # FIXME remove
 
     def _identify_goto_conflicts(self,
                                  entry: T.Tuple[int, str],
@@ -53,7 +54,7 @@ class SLR_Parser:
                                  goto_table: GOTO_TABLE):
         if (goto_table[entry] is not None) and (goto_table[entry] != new_value):
             raise RuntimeError(f"Shift-shift conflict on state {entry[0]} for lookahead token '{entry[1]}': can't decide between states {goto_table[entry]} (current) and {new_value} (new). This should not happen when using this function with a correctly built automaton, you might want to post a github issue on https://github.com/IgorPBorja/LRparser.")
-                           
+
     def build_table(self) -> T.Tuple[ACTION_TABLE, GOTO_TABLE]:
         """
             Builds the SLR ACTION and GOTO parsing table in the following way
@@ -69,10 +70,10 @@ class SLR_Parser:
 
             @returns:
                 ACTION: Dict[Tuple[int, str], Union[int, TRANSITION]]: maps a pair (state_id, token) to a action (if integer, goto state with this new id, else reduce by rule given)
-                GOTO: Dict[Tuple[int, str], int]: maps a pair (state_id, variable) to the id of the next state 
+                GOTO: Dict[Tuple[int, str], int]: maps a pair (state_id, variable) to the id of the next state
         """
-        action_table : ACTION_TABLE = {}
-        goto_table : GOTO_TABLE = {}
+        action_table: ACTION_TABLE = {}
+        goto_table: GOTO_TABLE = {}
         # prefill tables
         for state in self.automaton.states:
             for var in self.grammar.vars:
@@ -85,9 +86,9 @@ class SLR_Parser:
             id = state.id
             for lookahead in self.grammar.symbols:
                 for var in self.grammar.vars:
-                    if ((lookahead, var) not in state.productions or len(state.productions[lookahead, var]) == 0): ## FIXME impose consistent behavior
+                    if ((lookahead, var) not in state.productions or len(state.productions[lookahead, var]) == 0):  # FIXME impose consistent behavior
                         continue
-                    if lookahead in self.grammar.terminals: # shift
+                    if lookahead in self.grammar.terminals:  # shift
                         next_state_id = self.automaton.transition_table[id][lookahead]
                         if next_state_id is None:
                             raise RuntimeError(f"Unexpected error, in state {id} with lookahead {lookahead} transition table shows nothing, even though a rule exists.")
@@ -95,46 +96,46 @@ class SLR_Parser:
                         if (not conflict):
                             action_table[id, lookahead] = next_state_id
 
-                    if lookahead in self.grammar.vars: # goto
+                    if lookahead in self.grammar.vars:  # goto
                         next_state_id = self.automaton.transition_table[id][lookahead]
                         if next_state_id is None:
                             raise RuntimeError(f"Unexpected error, in state {id} with lookahead {lookahead} transition table shows nothing, even though a rule exists.")
                         self._identify_goto_conflicts((id, lookahead), next_state_id, goto_table)
                         goto_table[id, lookahead] = next_state_id
 
-            ## lookahead == '' (which is not a grammar symbol)
+            # lookahead == '' (which is not a grammar symbol)
             for var in self.grammar.vars:
                 if ('', var) not in state.productions:
                     continue
                 for word in state.productions['', var]:
                     for lookahead in self.follow[var]:
 
-                        ## iterate over reductions in the same state
-                        self._identify_action_conflicts((id, lookahead), (var, word), action_table) ## FIXME what about the indicator (dot)
+                        # iterate over reductions in the same state
+                        self._identify_action_conflicts((id, lookahead), (var, word), action_table)  # FIXME what about the indicator (dot)
                         action_table[(id, lookahead)] = (var, word)
 
         return action_table, goto_table
 
     def __init__(self,
-                 grammar : Grammar,
-                 indicator = '.',
-                 eof_symbol = '$'):
-        ## the indicator is internal to the LR0 automaton and does not need to be an attr
+                 grammar: Grammar,
+                 indicator='.',
+                 eof_symbol='$'):
+        # the indicator is internal to the LR0 automaton and does not need to be an attr
         self.grammar = grammar
         self.eof_symbol = eof_symbol
-        self.automaton : LR0_Automaton = LR0_Automaton(grammar, indicator, eof_symbol)
-        print("Transition table is", self.automaton.transition_table, sep="\n") ## FIXME remove
+        self.automaton: LR0_Automaton = LR0_Automaton(grammar, indicator, eof_symbol)
+        print("Transition table is", self.automaton.transition_table, sep="\n")  # FIXME remove
         self.first = self.grammar.first()
         self.follow = self.grammar.follow(self.first)
 
-        ## build parse table
+        # build parse table
         self.action_table, self.goto_table = self.build_table()
 
     def _calculate_width_table_column(self) -> T.Tuple[int, int]:
         """
             Calculates the minimum width to fit all entries (as str representations) of the action and goto tables, respectively
         """
-        action_table_maxW, goto_table_maxW = 4, 4  ## so that at least "None" can fit
+        action_table_maxW, goto_table_maxW = 4, 4  # so that at least "None" can fit
         for state in self.automaton.states:
             action_table_maxW = max(action_table_maxW, len(str(state.id)))
             goto_table_maxW = max(action_table_maxW, len(str(state.id)))
@@ -143,7 +144,7 @@ class SLR_Parser:
             goto_table_maxW = max(action_table_maxW, len(tok))
 
         for (_, _), action in self.action_table.items():
-            if (action is not None) and (not isinstance(action, int)): ## is reduce
+            if (action is not None) and (not isinstance(action, int)):  # is reduce
                 var, word = action
                 reduce_repr = var + " -> " + " ".join(word)
                 action_table_maxW = max(action_table_maxW, len(reduce_repr))
@@ -154,9 +155,9 @@ class SLR_Parser:
             Creates a visual representation of the tables ACTION and GOTO. We are careful to traverse the states in the same order (the order of index) so that merging these two tables into one is easier.
         """
         action_table_str, goto_table_str = "", ""
-        action_table_maxW, goto_table_maxW = self._calculate_width_table_column() # first, calculate max width needed
+        action_table_maxW, goto_table_maxW = self._calculate_width_table_column()  # first, calculate max width needed
         ids = [state.id for state in self.automaton.states]
-        ## top row
+        # top row
         action_table_str += "".center(action_table_maxW) + "|"
         goto_table_str += "".center(goto_table_maxW) + "|"
         for var in self.grammar.vars:
@@ -205,26 +206,26 @@ class SLR_Parser:
         tok = stream[0]
         while (True):
             s = state_stack[-1]
-            if isinstance(self.action_table[s, tok], int): ## shift
+            if isinstance(self.action_table[s, tok], int):  # shift
                 state_stack.append(self.action_table[s, tok])
                 tok = tok_list[ptr + 1]
                 ptr += 1
                 ast_bottom_nodes.append(AST(tok, []))
-            elif isinstance(self.action_table[s, tok], tuple): ## reduce
+            elif isinstance(self.action_table[s, tok], tuple):  # reduce
                 var, word = self.action_table[s, tok]
                 if (var == self.grammar.start and tok == self.eof_symbol):
-                    return 0, AST(self.grammar.start, ast_bottom_nodes) ## accepting state, parse sucessful
-                ## pop states corresponding to rule A -> alpha
-                reduce_size = len(word) - 1 ## HACK: exclude indicator (dot)
+                    return 0, AST(self.grammar.start, ast_bottom_nodes)  # accepting state, parse sucessful
+                # pop states corresponding to rule A -> alpha
+                reduce_size = len(word) - 1  # HACK: exclude indicator (dot)
                 reduce_components = ast_bottom_nodes[-reduce_size:]
                 for i in range(reduce_size):
                     state_stack.pop()
                     ast_bottom_nodes.pop()
                 t = state_stack[-1]
                 if self.goto_table[t, var] is None:
-                    return -1, AST(-1, ast_bottom_nodes) ## parse unsucessful
+                    return -1, AST(-1, ast_bottom_nodes)  # parse unsucessful
                 else:
                     state_stack.append(self.goto_table[t, var])
                     ast_bottom_nodes.append(AST(var, reduce_components))
             else:
-                return -1, AST(-1, ast_bottom_nodes) ## parse unsucessful
+                return -1, AST(-1, ast_bottom_nodes)  # parse unsucessful
