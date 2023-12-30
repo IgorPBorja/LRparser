@@ -10,6 +10,8 @@ def parse_file(filepath: str,
 
     with open(filepath, 'r') as f:
         for line in f.readlines():
+            if len(line.strip()) == 0:
+                continue
             if (len(line.strip()) != 0 and len(line.lstrip().split(rule_separator)) != 2):
                 raise ValueError(f"In line '{line.lstrip()}' \n\
                         Wrong format: each line must be either empty or \
