@@ -1,5 +1,7 @@
 import typing as T
 from lexer.dfa import DFA
+from collections import Frozen
+import tabulate
 
 
 class NFA:
@@ -110,8 +112,46 @@ class NFA:
         """
             Returns an equivalent DFA using the standard conversion procedure based on representing subsets of states in the NFA as single states in the new DFA.
 
+            Performs a DFS starting from the unit set containing the starting state, and stepping using each possible symbol.
+
             @param: None
             @return:
                 DFA instance that recognizes the same language
         """
-        raise NotImplementedError
+        # this DFS works in two stages
+        # 1. looking at stage (which implies numbering it)
+        # 2. visiting stage / stepping into it (which implies marking as visited)
+        # this is so we can write transition rules to states we haven't visited yet, just looked via their neighbors
+        reachable_subsets_stack: T.List[T.FrozenSet[int]] = [frozenset({self.start})]
+        idx_table: T.Dict[T.FrozenSet[int], int] = dict()
+        visited_table: T.Dict[T.FrozenSet[int], bool] = dict()
+        dfa_transition_table: T.Dict[T.Tuple[int, str], int] = dict()
+
+        idx_table[reachable_subsets_stack[-1]] = 0  # we start looking at the start state
+        curr_idx = 1
+        reverse_symbol_list = reversed(self.symbols)  # just so the DFS tree is consistent with the order of symbols provided
+        while len(reachable_subsets_stack) > 0:
+            curr_subset = reachable_subsets_stack.pop()
+            if visited_table[curr_subset]:
+                continue
+            visited_table[curr_subset] = True
+            for symb in reverse_symbol_list:
+                next_subset = frozenset(self.step(curr_subset, symb))  # freeze set to make it hashable
+                if next_subset not in idx_table:
+                    # looking at for the first time -> number it
+                    idx_table[next_subset] = curr_idx
+                    curr_idx += 1
+                # mark the transition on the new table
+                dfa_transition_table[idx_table[curr_subset], symb] = idx_table[next_subset]
+                reachable_subsets_stack.append(next_subset)
+
+    def __str__(self) -> str:
+        """
+            Returns transition table (as string)
+            Rows are state numbers, colums are symbols.
+        """
+        table_data = [["States", *self.symbols]]
+        for s in self.states:
+            row_data = [s] + [self.transition_table[s, a] for a in self.symbols]
+            table_data.append(row_data)
+        return tabulate.tabulate(table_data, headers='firstrow')

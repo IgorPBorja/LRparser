@@ -1,4 +1,5 @@
 import typing as T
+import tabulate
 
 
 class DFA:
@@ -126,3 +127,14 @@ class DFA:
             return self._hopcroft_minimize()
         else:
             raise NotImplementedError(f"Invalid minimization algorithm '{strategy}'")
+
+    def __str__(self) -> str:
+        """
+            Returns transition table (as string)
+            Rows are state numbers, colums are symbols
+        """
+        table_data = [["States", *self.symbols]]
+        for s in self.states:
+            row_data = [s] + [self.transition_table[s, a] for a in self.symbols]
+            table_data.append(row_data)
+        return tabulate.tabulate(table_data, headers='firstrow')
