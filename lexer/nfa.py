@@ -73,7 +73,7 @@ class NFA:
             states_after_symbol = states_after_symbol.union(self.transition_table[s, symbol])
         return self.epsilon_closure(states_after_symbol)
 
-    def process(self, sequence: T.Iterable[str]):
+    def process(self, sequence: T.Iterable[str]) -> T.Set[int]:
         """
             Processes a sequence entirely, returning the set of possible final states
 
@@ -116,7 +116,7 @@ class NFA:
             @return:
                 bool
         """
-        return self.is_accepting[self.process(sequence)]
+        return any(self.is_accepting[x] for x in self.process(sequence))
 
     def toDFA(self) -> DFA:
         """
