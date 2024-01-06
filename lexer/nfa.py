@@ -15,14 +15,16 @@ class NFA:
     def __init__(self,
                  num_states: int,
                  symbols: T.Sequence[str],
-                 transition_table: T.Dict[T.Tuple[int, str], T.Iterable[int]],
+                 transition_table: T.Dict[int, T.Dict[str, T.Iterable[int]]],
                  accepting_states: T.Iterable[int],
                  start: int = 0):
         # fill table
         for state in range(num_states):
+            if state not in transition_table:
+                transition_table[state] = dict()
             for symb in ['', *symbols]:
-                if (state, symb) not in transition_table:
-                    transition_table[state, symb] = set()
+                if symb not in transition_table[state]:
+                    transition_table[state][symb] = set()
 
         self.num_states = num_states
         self.states = list(range(num_states))
@@ -42,7 +44,7 @@ class NFA:
             where E_0 = S and E_{k + 1} := E_{k} U {transition_table[t, epsilon], t in E_{k}}. Implements this using an iterative DFS
 
             Complexity: O(n + m) (assuming iteration over states is linear), where n is the number of states and m is the number of epsilon-edges
-                m = sum(s is a state) |transition_table[s, epsilon]|
+                m = sum(s is a state) |transition_table[s][epsilon]|
         """
         epsilon = ''
         visited: T.List[bool] = [False for i in range(self.num_states)]
@@ -52,7 +54,7 @@ class NFA:
             if visited[s]:
                 continue
             visited[s] = True
-            for t in self.transition_table[s, epsilon]:
+            for t in self.transition_table[s][epsilon]:
                 if not visited[t]:  # optimization: do no t push visited states
                     search_stack.append(t)
         return set([s for s in range(self.num_states) if visited[s]])
@@ -69,7 +71,7 @@ class NFA:
             raise ValueError("Target symbol in step function cannot be the empty string")
         states_after_symbol: T.Set[int] = set()
         for s in states:
-            states_after_symbol = states_after_symbol.union(self.transition_table[s, symbol])
+            states_after_symbol = states_after_symbol.union(self.transition_table[s][symbol])
         return self.epsilon_closure(states_after_symbol)
 
     def process(self, sequence: T.Iterable[str]) -> T.Set[int]:
@@ -134,25 +136,32 @@ class NFA:
         reachable_subsets_stack: T.List[T.FrozenSet[int]] = [frozenset({self.start})]
         idx_table: T.Dict[T.FrozenSet[int], int] = dict()
         visited_table: T.Dict[T.FrozenSet[int], bool] = dict()
-        dfa_transition_table: T.Dict[T.Tuple[int, str], int] = dict()
+        dfa_transition_table: T.Dict[int, T.Dict[str, int]] = dict()
+        dfa_accepting_states: T.List[int] = []
 
         idx_table[reachable_subsets_stack[-1]] = 0  # we start looking at the start state
+        dfa_transition_table[0] = dict()
         curr_idx = 1
         reverse_symbol_list = reversed(self.symbols)  # just so the DFS tree is consistent with the order of symbols provided
         while len(reachable_subsets_stack) > 0:
             curr_subset = reachable_subsets_stack.pop()
-            if visited_table[curr_subset]:
+            if curr_subset in visited_table:
                 continue
             visited_table[curr_subset] = True
             for symb in reverse_symbol_list:
                 next_subset = frozenset(self.step(curr_subset, symb))  # freeze set to make it hashable
                 if next_subset not in idx_table:
-                    # looking at for the first time -> number it
+                    # looking at for the first time -> number it and create entry on transition_table
                     idx_table[next_subset] = curr_idx
+                    dfa_transition_table[idx_table[next_subset]] = dict()
+                    # also check acceptance
+                    if any(self.is_accepting[state] for state in next_subset):
+                        dfa_accepting_states.append(idx_table[next_subset])
                     curr_idx += 1
                 # mark the transition on the new table
-                dfa_transition_table[idx_table[curr_subset], symb] = idx_table[next_subset]
+                dfa_transition_table[idx_table[curr_subset]][symb] = idx_table[next_subset]
                 reachable_subsets_stack.append(next_subset)
+        return DFA(len(idx_table), self.symbols, dfa_transition_table, dfa_accepting_states)
 
     def __str__(self) -> str:
         """
@@ -161,6 +170,6 @@ class NFA:
         """
         table_data = [["States", *self.symbols]]
         for s in self.states:
-            row_data = [s] + [self.transition_table[s, a] for a in self.symbols]
+            row_data = [s] + [self.transition_table[s][a] for a in self.symbols]
             table_data.append(row_data)
         return tabulate.tabulate(table_data, headers='firstrow')
