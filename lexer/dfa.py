@@ -98,7 +98,7 @@ class DFA:
                 New DFA, containing only the reachable states, renumbered to form a contiguous sequence starting at 0.
         """
         reachable_status: T.List[bool] = [False for i in range(self.num_states)]
-        reverse_symbol_list = reversed([s for s in self.symbols])
+        reverse_symbol_list = list(reversed([s for s in self.symbols]))
         search_stack = [self.start]
         while len(search_stack) > 0:
             curr = search_stack.pop()

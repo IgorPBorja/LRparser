@@ -142,7 +142,7 @@ class NFA:
         idx_table[reachable_subsets_stack[-1]] = 0  # we start looking at the start state
         dfa_transition_table[0] = dict()
         curr_idx = 1
-        reverse_symbol_list = reversed(self.symbols)  # just so the DFS tree is consistent with the order of symbols provided
+        reverse_symbol_list = list(reversed(self.symbols))  # just so the DFS tree is consistent with the order of symbols provided
         while len(reachable_subsets_stack) > 0:
             curr_subset = reachable_subsets_stack.pop()
             if curr_subset in visited_table:
