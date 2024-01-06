@@ -1,6 +1,5 @@
 import typing as T
 from lexer.dfa import DFA
-from collections import Frozen
 import tabulate
 
 
