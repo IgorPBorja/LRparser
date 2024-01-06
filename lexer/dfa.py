@@ -12,25 +12,26 @@ class DFA:
     def __init__(self,
                  num_states: int,
                  symbols: T.Sequence[str],
-                 transition_table: T.Dict[T.Tuple[int, str], T.Optional[int]],
+                 transition_table: T.Dict[int, T.Dict[str, T.Optional[int]]],
                  accepting_states: T.Iterable[int],
                  start: int = 0):
         """
             @param
                 states [int]: determine the number of states
                 symbols [sequence[str]]: list of symbols for the underlying alphabet
-                transition_table [dict[tuple[int, str], int]]: description of the transition function as a table/hashmap
-                    transition_table[s, a] is the next state when processing 'a' from state 's'
+                transition_table [dict[int, dict[str, int]]: description of the transition function as a table/hashmap
+                    transition_table[s][a] is the next state when processing 'a' from state 's'
                 accepting_states [iterable[int]]: container detailing all the accepting states
                 start [int]: initial state
                     Default: 0
 
-            If there is not edge leaving s reading symbol a, it is accepted to either leave the key (s, a) missing or set transition_table[s, a] to None. Either way, the constructor will fill the missing spots on the table with None.
+            If there is not edge leaving s reading symbol a, it is accepted to either leave the key (s, a) missing or set transition_table[s][a] to None. Either way, the constructor will fill the missing spots on the table with None.
         """
+        # fill table
         for state in range(num_states):
             for symb in symbols:
-                if (state, symb) not in transition_table:
-                    transition_table[state, symb] = None
+                if symb not in transition_table[state]:
+                    transition_table[state][symb] = None
 
         self.num_states = num_states
         self.states = list(range(num_states))
@@ -52,10 +53,14 @@ class DFA:
                 generator yielding the states obtained when processing the string, in order. Skips the initial state
                 Will yield None when trying to walk non-existent transition. If there are any iterations after that, there will be a error raised.
         """
-        state: T.Optional[int] = self.start
+        state: int = self.start
         for char in sequence:
-            state = self.transition_table[state, char]
-            yield state
+            if self.transition_table[state][char] is None:
+                yield None
+                return
+            else:
+                state = self.transition_table[state][char]
+                yield state
 
     def process(self, sequence: T.Iterable[str]):
         """
@@ -67,10 +72,20 @@ class DFA:
         """
         state = self.start
         for char in sequence:
-            if self.transition_table[state, char] is None:
-                raise RuntimeError(f"No transition registered from state '{state}' reading symbol '{char}'")
-            state = self.transition_table[state, char]
+            if self.transition_table[state][char] is None:
+                raise RuntimeError(f"No transition registered from state {state} reading symbol '{char}'")
+            state = self.transition_table[state][char]
         return state
+
+    def accepts(self, sequence: T.Iterable[str]) -> bool:
+        """
+            Returns whether the sequence is accepted by the DFA
+            @param:
+                sequence: Iterable[str]
+            @return:
+                bool
+        """
+        return self.is_accepting[self.process(sequence)]
 
     def remove_unreachable(self) -> "DFA":
         """
@@ -91,18 +106,18 @@ class DFA:
                 continue
             reachable_status[curr] = True
             for char in reverse_symbol_list:
-                if self.transition_table[curr, char] is not None:
-                    search_stack.append(self.transition_table[curr, char])
+                if self.transition_table[curr][char] is not None:
+                    search_stack.append(self.transition_table[curr][char])
 
         reachable = [s for s in range(self.num_states) if reachable_status[s]]
         new_accepting = [s for s in reachable if self.is_accepting[s]]
-        new_transition_table: T.Dict[T.Tuple[int, str], T.Optional[int]] = {}
+        new_transition_table: T.Dict[int, T.Dict[str, T.Optional[int]]] = {s: dict() for s in range(len(reachable))}
         renumbering_mapping: T.Dict[int, int] = {}
         for i, s in enumerate(reachable):
             renumbering_mapping[s] = i
         for state in reachable:
             for symb in self.symbols:
-                new_transition_table[renumbering_mapping[state], symb] = self.transition_table[state, symb]
+                new_transition_table[renumbering_mapping[state]][symb] = self.transition_table[state][symb]
         return DFA(len(reachable), self.symbols, new_transition_table, new_accepting, self.start)
 
     def _hopcroft_minimize(self) -> "DFA":
@@ -135,6 +150,6 @@ class DFA:
         """
         table_data = [["States", *self.symbols]]
         for s in self.states:
-            row_data = [s] + [self.transition_table[s, a] for a in self.symbols]
+            row_data = [s] + [self.transition_table[s][a] for a in self.symbols]
             table_data.append(row_data)
         return tabulate.tabulate(table_data, headers='firstrow')

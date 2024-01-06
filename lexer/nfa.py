@@ -108,6 +108,16 @@ class NFA:
             curr_possible_states = self.step(curr_possible_states, char)
             yield curr_possible_states
 
+    def accepts(self, sequence: T.Iterable[str]) -> bool:
+        """
+            Returns whether the sequence is accepted by the DFA
+            @param:
+                sequence: Iterable[str]
+            @return:
+                bool
+        """
+        return self.is_accepting[self.process(sequence)]
+
     def toDFA(self) -> DFA:
         """
             Returns an equivalent DFA using the standard conversion procedure based on representing subsets of states in the NFA as single states in the new DFA.
