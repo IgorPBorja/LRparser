@@ -1,4 +1,4 @@
-name: SLR parser
+name: Lexer (lexical analysis)
 on: [push]
 
 jobs:
@@ -13,26 +13,21 @@ jobs:
         with:
           python-version: 3.8  # Replace with your Python version if needed
 
-      - name: Install pip dependencies on testing environment
+      - name: Install dependencies on testing environment
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest
 
-  test-LR0:
-    name: Test LR0 automaton class
+  test-automata:
+    name: Test automata-related components (DFA, NFA classes)
     needs: install-dependencies
     runs-on: ubuntu-latest
     steps:
-      - name: Run pytest on grammar files
+      - name: Run unit tests for DFA class
         run: |
-          python -m pytest tests/SLR/test_LR0.py
+          python -m pytest tests/lexer/dfa.py
 
-  test-AST:
-    name: Test parser and AST builder against test samples
-    needs: install-dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run pytest on grammar files
+      - name: Run unit tests for NFA class
         run: |
-          python -m pytest tests/AST/test_AST.py
+          python -m pytest tests/lexer/nfa.py
