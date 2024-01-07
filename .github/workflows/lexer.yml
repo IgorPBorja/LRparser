@@ -1,0 +1,29 @@
+name: Lexer (lexical analysis)
+on: [push]
+
+jobs:
+  test-automata:
+    name: Test automata-related components (DFA, NFA classes)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8  # Replace with your Python version if needed
+
+      - name: Install dependencies on testing environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run unit tests for DFA class
+        run: |
+          python -m pytest tests/lexer/dfa.py
+
+      - name: Run unit tests for NFA class
+        run: |
+          python -m pytest tests/lexer/nfa.py
