@@ -22,8 +22,8 @@ jobs:
 
       - name: Run unit tests for DFA class
         run: |
-          python -m pytest tests/lexer/dfa.py
+          python -m pytest tests/lexer/test_dfa.py
 
       - name: Run unit tests for NFA class
         run: |
-          python -m pytest tests/lexer/nfa.py
+          python -m pytest tests/lexer/test_nfa.py
